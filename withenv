@@ -1,0 +1,48 @@
+#!/bin/zsh
+
+alias eecho=">&2 echo"
+print_help() {
+  <<EOF
+usage:
+    withenv ([-e|--env] <custom_env>)* [-h|--help] <command_args>*
+EOF
+}
+
+use_custom_env=0
+custom_env=()
+
+while (( $# )); do
+  case "$1" in
+    -e|--env)
+      use_custom_env=1
+      shift
+      custom_env+=("$1")
+      shift
+      ;;
+    -h|--help)
+      print_help
+      exit 0
+      ;;
+    -*|--*)
+      eecho "unknown option $1"
+      print_help
+      exit 1
+      ;;
+    *)
+      break
+  esac
+done
+
+if (( $use_custom_env )); then
+  for file in "${custom_env[@]}"; do
+    . "$(realpath "$file")"
+  done
+else
+  . "./.env"
+fi
+
+if (( $# )); then
+  $@
+else
+  $SHELL -l
+fi

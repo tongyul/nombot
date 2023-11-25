@@ -1,0 +1,18 @@
+use serenity::async_trait;
+use serenity::model::channel::Message;
+use serenity::model::gateway::Ready;
+use serenity::prelude::*;
+
+// -- snip --
+
+struct Handler;
+impl EventHandler for Handler {
+    async fn message(&self, ctx: Context, msg: Message) { /* snip */ }
+    async fn ready(&self, _: Context, ready: Ready) { /* snip */ }
+}
+
+// -- snip --
+
+// Given ctx: Context, msg: Message,
+msg.content: String
+msg.channel_id.say(&ctx.http, "your message").await: Ok(_) | Err(why)
