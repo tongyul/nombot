@@ -37,27 +37,42 @@ impl ParseError {
 pub fn parse(s: &str) -> Result<Command, ParseError> {
     let (name, mut s, mut offset) = expect_ident(s, 0)?;
     let mut args = vec![];
+    let mut most_successful_error: Option<ParseError> = None;
     loop {
         if let Ok(s) = expect_rest(s, offset)
             .or_else(|_| expect_spaces(s, offset).and_then(|(s, o)| expect_rest(s, o))) {
             break Ok(Command::new(name, args, s))
         }
-        let (s1, offset1) = expect_spaces(s, offset)?;
-        let (arg, s2, offset2) =
-            match expect_key_value(s1, offset1)
-                .map(|(k, v, r, o)| (Arg::Kw(k, v), r, o))
-                .or_else(
-                    |e| expect_value(s1, offset1)
-                    .map(|(v, r, o)| (Arg::Pos(v), r, o))
-                    .map_err(|e_| e.max_by_loc(e_))
-                )
-            {
-                Ok(x) => x,
-                Err(e) => break Err(e),
-            };
-        args.push(arg);
-        s = s2;
-        offset = offset2;
+        let (s1, offset1) = match expect_spaces(s, offset) {
+            Ok(x) => x,
+            Err(e) =>
+                break Err(match most_successful_error {
+                    Some(m) => m.max_by_loc(e),
+                    None => e,
+                }),
+        };
+        match expect_key_value(s1, offset1) {
+            Ok((k, v, r, o)) => {
+                args.push(Arg::Kw(k, v));
+                (s, offset) = (r, o);
+            }
+            Err(e1) => match expect_value(s1, offset1) {
+                Ok((v, r, o)) => {
+                    most_successful_error =
+                        Some(match most_successful_error {
+                            Some(m) => m.max_by_loc(e1),
+                            None => e1,
+                        });
+                    args.push(Arg::Pos(v));
+                    (s, offset) = (r, o);
+                }
+                Err(e2) =>
+                    break Err(match most_successful_error {
+                        Some(m) => m.max_by_loc(e1).max_by_loc(e2),
+                        None => e1.max_by_loc(e2),
+                    }),
+            }
+        }
     }
 }
 
