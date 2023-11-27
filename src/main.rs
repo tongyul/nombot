@@ -1,11 +1,19 @@
+use std::collections::HashMap;
 use std::env;
+use std::sync::Arc;
 
 use serenity::async_trait;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 
+mod commands;
+mod defn;
 mod nom_args;
+mod nom_util;
+
+use crate::defn::command::{ ClientData, CommandHandler };
+use crate::defn::globals::{ CommandMap, CommandMapTmk };
 
 struct Handler {
     command_prefix: String,
@@ -29,13 +37,30 @@ impl EventHandler for Handler {
             // of permissions to post in the channel, so log to stdout when some error happens,
             // with a description of it.
             let content_tail = &msg.content[pref.len()..];
-            let reply = match nom_args::parse(content_tail) {
-                Ok(cmd) => format!("Received a command:\n```\n{:?}\n```", cmd),
-                Err(e) => format!("{}", e),
+            match nom_args::parse(content_tail) {
+                Err(e) => {
+                    if let Err(why) = msg.channel_id.say(&ctx.http, format!("```\n{}\n```", e)).await {
+                        println!("Error sending message: {why:?}");
+                    }
+                }
+                Ok(cmd) => {
+                    let h = {
+                        let data = ctx.data.read().await;
+                        let cm = data
+                            .get::<CommandMapTmk>().expect("Command map does not exist!")
+                            .read().await;
+                        cm.get(&cmd.name[..]).map(Arc::clone)
+                    };
+                    match h {
+                        None => {
+                            if let Err(why) = msg.channel_id.say(&ctx.http, format!("```\nCommand {:?} does not exist\n```", cmd.name)).await {
+                                println!("Error sending message: {why:?}");
+                            }
+                        }
+                        Some(h) => h.call(cmd, ctx, msg).await,
+                    }
+                }
             };
-            if let Err(why) = msg.channel_id.say(&ctx.http, reply).await {
-                println!("Error sending message: {why:?}");
-            }
         }
     }
 
@@ -63,6 +88,28 @@ async fn main() {
     let handler = Handler::new("nom/".into());
     let mut client =
         Client::builder(&token, intents).event_handler(handler).await.expect("Err creating client");
+    let command_map = Arc::new(RwLock::new(HashMap::new()));
+
+    async fn register<H: 'static + CommandHandler>(mut h: H, d: ClientData, c: CommandMap) {
+        let keys = h.register(d).await;
+        let mut c = c.write().await;
+        let h_arc = Arc::new(h);
+        for k in keys.into_iter() {
+            if let Some(_) = c.insert(k, h_arc.clone()) {
+                panic!("The same name is bound to multiple commands");
+            }
+        }
+    }
+
+    tokio::join!(
+        register(commands::echo::EchoHandler, client.data.clone(), command_map.clone()),
+        register(commands::help::HelpHandler, client.data.clone(), command_map.clone()),
+        register(commands::nom::NomHandler, client.data.clone(), command_map.clone()),
+    );
+    {
+        let mut data = client.data.write().await;
+        data.insert::<CommandMapTmk>(command_map);
+    }
 
     // Finally, start a single shard, and start listening to events.
     //
