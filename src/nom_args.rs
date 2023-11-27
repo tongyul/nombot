@@ -6,9 +6,9 @@ pub enum Arg {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Command {
-    name: String,
-    args: Vec<Arg>,
-    rest: String,
+    pub name: String,
+    pub args: Vec<Arg>,
+    pub rest: String,
 }
 
 impl Command {
