@@ -13,12 +13,12 @@ impl CommandHandler for NomHandler {
     async fn call(&self, Command { name: _, args, rest }: Command, ctx: Context, msg: Message) {
         // a simple secondary parser
         if rest.len() != 0 {
-            let _: Option<_> = util::try_reply(ctx, msg, "```\nnom: does not accept a rest-field\n```").await;
+            let _: Option<_> = util::try_reply(&ctx, &msg, "```\nnom: does not accept a rest-field\n```").await;
             return;
         }
         let mut ups = 0u32;
         let mut downs = 0u32;
-        async fn report_conflict(c: Context, m: Message) {
+        async fn report_conflict(c: &Context, m: &Message) {
             let _: Option<_> = util::try_reply(c, m, "```\nnom: cannot have both `!`s and `.`s\n```").await;
         }
         for a in args.iter() {
@@ -26,15 +26,15 @@ impl CommandHandler for NomHandler {
                 Arg::Pos(s) => {
                     for c in s.chars() {
                         match c {
-                            '!' if downs != 0 => { let () = report_conflict(ctx, msg).await; return; }
+                            '!' if downs != 0 => { let () = report_conflict(&ctx, &msg).await; return; }
                             '!' => { ups = (ups + 1).min(3); }
-                            '.' if ups != 0 => { let () = report_conflict(ctx, msg).await; return; }
+                            '.' if ups != 0 => { let () = report_conflict(&ctx, &msg).await; return; }
                             '.' => { downs = (downs + 1).min(2); }
-                            _ => { let _: Option<_> = util::try_reply(ctx, msg, format!("```\nnom: unrecognized character {c:?}\n```")).await; return; }
+                            _ => { let _: Option<_> = util::try_reply(&ctx, &msg, format!("```\nnom: unrecognized character {c:?}\n```")).await; return; }
                         }
                     }
                 }
-                Arg::Kw(..) => { let _: Option<_> = util::try_reply(ctx, msg, format!("```\nnom: does not accept keyword arguments\n```")).await; return; }
+                Arg::Kw(..) => { let _: Option<_> = util::try_reply(&ctx, &msg, format!("```\nnom: does not accept keyword arguments\n```")).await; return; }
             }
         }
 
@@ -49,6 +49,6 @@ impl CommandHandler for NomHandler {
             5 => "nom-mers~\nnom-mers~\nnom-nom-nom-mers~\nnom-mers~\nnom-mers~\nnom-nom-nom-mers~",
             _ => unreachable!(),
         };
-        let _: Option<_> = util::try_reply(ctx, msg, reply).await;
+        let _: Option<_> = util::try_reply(&ctx, &msg, reply).await;
     }
 }

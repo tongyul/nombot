@@ -30,11 +30,11 @@ impl CommandHandler for HelpHandler {
 
         // parse (validate) arguments
         if args.len() != 0 {
-            let _: Option<_> = util::try_reply(ctx, msg, "```\nhelp: does not accept arguments (yet)\n```").await;
+            let _: Option<_> = util::try_reply(&ctx, &msg, "```\nhelp: does not accept arguments (yet)\n```").await;
             return;
         }
         if rest.len() != 0 {
-            let _: Option<_> = util::try_reply(ctx, msg, "```\nhelp: does not accept a rest-field\n```").await;
+            let _: Option<_> = util::try_reply(&ctx, &msg, "```\nhelp: does not accept a rest-field\n```").await;
             return;
         }
 
@@ -53,9 +53,9 @@ impl CommandHandler for HelpHandler {
         }
 
         if v.len() == 0 {
-            let _: Option<_> = util::try_reply(ctx, msg, "There is no help. (???)").await;
+            let _: Option<_> = util::try_reply(&ctx, &msg, "There is no help. (???)").await;
         } else {
-            let _: Option<_> = util::try_reply(ctx, msg, format!("```\n{}\n```", v.join("\n"))).await;
+            let _: Option<_> = util::try_reply(&ctx, &msg, format!("```\n{}\n```", v.join("\n"))).await;
         }
     }
 }

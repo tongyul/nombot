@@ -32,7 +32,7 @@ impl EventHandler for Handler {
     // simultaneously.
     async fn message(&self, ctx: Context, msg: Message) {
         let pref = &self.command_prefix[..];
-        if msg.content.len() >= pref.len() && &msg.content[..pref.len()] == pref {
+        if msg.content.len() >= pref.len() && &msg.content.chars().take(pref.chars().count()).collect::<String>()[..] == pref {
             // Sending a message can fail, due to a network error, an authentication error, or lack
             // of permissions to post in the channel, so log to stdout when some error happens,
             // with a description of it.
@@ -77,7 +77,7 @@ impl EventHandler for Handler {
 #[tokio::main]
 async fn main() {
     // Configure the client with your Discord bot token in the environment.
-    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+    let token = env::var("DISCORD_TOKEN").expect("Expected a DISCORD_TOKEN in the environment.");
     // Set gateway intents, which decides what events the bot will be notified about
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
@@ -85,7 +85,9 @@ async fn main() {
 
     // Create a new instance of the Client, logging in as a bot. This will automatically prepend
     // your bot token with "Bot ", which is a requirement by Discord for bot users.
-    let handler = Handler::new("nom/".into());
+    let mut prefix = env::var("PREFIX").expect("Expected a PREFIX in the environment.");
+    prefix.push('/');
+    let handler = Handler::new(prefix);
     let mut client =
         Client::builder(&token, intents).event_handler(handler).await.expect("Err creating client");
     let command_map = Arc::new(RwLock::new(HashMap::new()));

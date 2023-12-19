@@ -139,19 +139,19 @@ impl CommandHandler for EchoHandler {
             let _: Option<_> = if msg.author.id == ctx.cache.current_user().id
                 && reply.len() >= "nom/echo".len() && &reply[.."nom/echo".len()] == "nom/echo"
             {
-                util::try_reply(ctx, msg, "nombot refuses to `nom/echo`-bomb this channel. :/").await
+                util::try_reply(&ctx, &msg, "nombot refuses to `nom/echo`-bomb this channel. :/").await
             } else if reply.len() == 0 {
-                util::try_reply(ctx, msg, "nombot cannot send an empty message. :/").await
+                util::try_reply(&ctx, &msg, "nombot cannot send an empty message. :/").await
             } else {
-                util::try_reply(ctx, msg, reply).await
+                util::try_reply(&ctx, &msg, reply).await
             };
         }
 
         match sc {
             Sc::Error { why } =>
-                { let _: Option<_> = util::try_reply(ctx, msg, format!("```echo: {why}```")).await; }
+                { let _: Option<_> = util::try_reply(&ctx, &msg, format!("```echo: {why}```")).await; }
             Sc::Help =>
-                { let _: Option<_> = util::try_reply(ctx, msg, HELP_STR).await; }
+                { let _: Option<_> = util::try_reply(&ctx, &msg, HELP_STR).await; }
             Sc::Echo { sorted, reversed, scope: Scope::Characters } => {
                 let reply = match (sorted, reversed) {
                     (false, false) => rest,
